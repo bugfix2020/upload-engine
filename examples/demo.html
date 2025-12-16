@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Engine Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #fafafa;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .upload-area.drag-over {
+            border-color: #667eea;
+            background: #e8f0ff;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #d32f2f;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .status {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .file-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .file-info strong {
+            color: #333;
+        }
+        
+        .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            color: #4caf50;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 Upload Engine Demo</h1>
+        <p class="subtitle">Browser-based file upload with chunking support</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="icon">📁</div>
+            <p><strong>Click to select a file</strong> or drag and drop</p>
+            <p style="font-size: 12px; color: #999; margin-top: 10px;">
+                Files larger than 10MB will be automatically chunked
+            </p>
+            <input type="file" id="fileInput" />
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="btn btn-primary" id="uploadBtn" disabled>Upload File</button>
+            <button class="btn btn-secondary" id="cancelBtn" style="display: none;">Cancel Upload</button>
+        </div>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar-bg">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+        
+        <div class="file-info" id="fileInfo" style="display: none;"></div>
+    </div>
+
+    <script>
+        // This is a demonstration - in production you would import the actual library
+        // For now, we'll simulate the upload behavior
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const status = document.getElementById('status');
+        const fileInfo = document.getElementById('fileInfo');
+        
+        let selectedFile = null;
+        let uploadInProgress = false;
+        
+        // File selection handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelect(e.target.files[0]);
+        });
+        
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            handleFileSelect(e.dataTransfer.files[0]);
+        });
+        
+        function handleFileSelect(file) {
+            if (!file) return;
+            
+            selectedFile = file;
+            uploadBtn.disabled = false;
+            
+            const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+            const willChunk = file.size > 10 * 1024 * 1024;
+            
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <strong>Selected File:</strong> ${file.name}<br>
+                <strong>Size:</strong> ${sizeMB} MB<br>
+                <strong>Type:</strong> ${file.type || 'unknown'}<br>
+                <strong>Upload Method:</strong> ${willChunk ? 'Chunked (5MB chunks)' : 'Single request'}
+            `;
+        }
+        
+        // Upload simulation
+        uploadBtn.addEventListener('click', () => {
+            if (!selectedFile || uploadInProgress) return;
+            
+            uploadInProgress = true;
+            uploadBtn.style.display = 'none';
+            cancelBtn.style.display = 'inline-block';
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            
+            // Simulate upload progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                status.textContent = `Uploading... ${progress.toFixed(1)}%`;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    status.textContent = '✅ Upload completed successfully!';
+                    status.classList.add('success');
+                    cancelBtn.style.display = 'none';
+                    uploadInProgress = false;
+                    
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                        uploadBtn.style.display = 'inline-block';
+                        uploadBtn.disabled = true;
+                        fileInfo.style.display = 'none';
+                        selectedFile = null;
+                        fileInput.value = '';
+                        status.classList.remove('success');
+                    }, 3000);
+                }
+            }, 200);
+            
+            cancelBtn.onclick = () => {
+                clearInterval(interval);
+                status.textContent = '❌ Upload cancelled';
+                status.classList.add('error');
+                cancelBtn.style.display = 'none';
+                uploadBtn.style.display = 'inline-block';
+                uploadInProgress = false;
+                
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    status.classList.remove('error');
+                }, 2000);
+            };
+        });
+        
+        // Log message about the demo
+        console.log('%c📦 Upload Engine Demo', 'font-size: 18px; font-weight: bold; color: #667eea;');
+        console.log('%cThis is a simulation. In production:', 'font-size: 14px; color: #666;');
+        console.log('%c1. Install: npm install @bugfix2020/upload-engine', 'font-size: 12px; color: #333;');
+        console.log('%c2. Import: import { UploadEngine } from "@bugfix2020/upload-engine"', 'font-size: 12px; color: #333;');
+        console.log('%c3. Use the real upload engine with your API endpoint', 'font-size: 12px; color: #333;');
+    </script>
+</body>
+</html>
