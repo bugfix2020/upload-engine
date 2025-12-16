@@ -25,7 +25,7 @@ export const UploadProvider: React.FC<UploadProviderProps> = ({
   const [engines] = useState<Record<string, UploadEngine>>({});
 
   const generateId = useCallback(() => {
-    return `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `upload-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }, []);
 
   const uploadFile = useCallback(
@@ -119,9 +119,9 @@ export const UploadProvider: React.FC<UploadProviderProps> = ({
 
   const removeUpload = useCallback((id: string) => {
     setUploads((prev) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { [id]: removed, ...rest } = prev;
-      return rest;
+      const newUploads = { ...prev };
+      delete newUploads[id];
+      return newUploads;
     });
     delete engines[id];
   }, [engines]);

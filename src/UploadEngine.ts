@@ -13,6 +13,7 @@ export class UploadEngine {
       method = 'POST',
       headers = {},
       maxRetries = 3,
+      retryDelayMs = 1000,
       onProgress,
       onSuccess,
       onError,
@@ -21,7 +22,7 @@ export class UploadEngine {
     this.abortController = new AbortController();
     this.retryCount = 0;
 
-    return this.attemptUpload(file, url, method, headers, maxRetries, onProgress, onSuccess, onError);
+    return this.attemptUpload(file, url, method, headers, maxRetries, retryDelayMs, onProgress, onSuccess, onError);
   }
 
   private async attemptUpload(
@@ -30,6 +31,7 @@ export class UploadEngine {
     method: string,
     headers: Record<string, string>,
     maxRetries: number,
+    retryDelayMs: number,
     onProgress?: (progress: number) => void,
     onSuccess?: (response: any) => void,
     onError?: (error: Error) => void
@@ -77,11 +79,12 @@ export class UploadEngine {
                 method,
                 headers,
                 maxRetries,
+                retryDelayMs,
                 onProgress,
                 onSuccess,
                 onError
               ).then(resolve).catch(reject);
-            }, 1000 * this.retryCount);
+            }, retryDelayMs * this.retryCount);
           } else {
             onError?.(error);
             reject(error);
@@ -125,6 +128,8 @@ export class UploadEngine {
       headers = {},
       chunkSize = 1024 * 1024 * 5, // 5MB default
       maxRetries = 3,
+      retryDelayMs = 1000,
+      chunkContentType = 'application/octet-stream',
       onProgress,
       onChunkProgress,
       onSuccess,
@@ -152,7 +157,7 @@ export class UploadEngine {
         const chunkUrl = getChunkUrl ? getChunkUrl(chunkIndex, totalChunks) : url;
         const chunkHeaders = {
           ...headers,
-          'Content-Type': 'application/octet-stream',
+          'Content-Type': chunkContentType,
           'X-Chunk-Index': chunkIndex.toString(),
           'X-Total-Chunks': totalChunks.toString(),
           'X-File-Name': file.name,
@@ -166,6 +171,7 @@ export class UploadEngine {
           method,
           chunkHeaders,
           maxRetries,
+          retryDelayMs,
           (chunkProgress) => {
             const totalProgress = ((uploadedBytes + (chunk.size * chunkProgress / 100)) / file.size) * 100;
             onProgress?.(totalProgress);
@@ -193,6 +199,7 @@ export class UploadEngine {
     method: string,
     headers: Record<string, string>,
     maxRetries: number,
+    retryDelayMs: number,
     onProgress?: (progress: number) => void,
     retryCount = 0
   ): Promise<any> {
@@ -229,10 +236,11 @@ export class UploadEngine {
               method,
               headers,
               maxRetries,
+              retryDelayMs,
               onProgress,
               retryCount + 1
             ).then(resolve).catch(reject);
-          }, 1000 * (retryCount + 1));
+          }, retryDelayMs * (retryCount + 1));
         } else {
           reject(new Error('Network error during chunk upload'));
         }

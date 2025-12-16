@@ -4,6 +4,7 @@ export interface UploadOptions {
   headers?: Record<string, string>;
   chunkSize?: number;
   maxRetries?: number;
+  retryDelayMs?: number;
   onProgress?: (progress: number) => void;
   onChunkProgress?: (chunkIndex: number, totalChunks: number, progress: number) => void;
   onSuccess?: (response: any) => void;
@@ -11,6 +12,7 @@ export interface UploadOptions {
 }
 
 export interface ChunkUploadOptions extends UploadOptions {
+  chunkContentType?: string;
   getChunkUrl?: (chunkIndex: number, totalChunks: number) => string;
   getChunkHeaders?: (chunkIndex: number, totalChunks: number) => Record<string, string>;
 }
@@ -21,18 +23,18 @@ export interface UploadProgress {
   percentage: number;
 }
 
-export interface UploadState {
-  id: string;
-  file: File;
-  status: 'pending' | 'uploading' | 'completed' | 'error' | 'cancelled';
-  progress: number;
-  error?: Error;
-}
-
 export enum UploadStatus {
   Pending = 'pending',
   Uploading = 'uploading',
   Completed = 'completed',
   Error = 'error',
   Cancelled = 'cancelled',
+}
+
+export interface UploadState {
+  id: string;
+  file: File;
+  status: UploadStatus;
+  progress: number;
+  error?: Error;
 }

@@ -151,6 +151,7 @@ interface UploadOptions {
   headers?: Record<string, string>;
   chunkSize?: number;
   maxRetries?: number;
+  retryDelayMs?: number;
   onProgress?: (progress: number) => void;
   onChunkProgress?: (chunkIndex: number, totalChunks: number, progress: number) => void;
   onSuccess?: (response: any) => void;
@@ -161,6 +162,7 @@ interface UploadOptions {
 ### ChunkUploadOptions
 
 Extends `UploadOptions` with:
+- `chunkContentType?: string` - Content-Type header for chunks. Default: 'application/octet-stream'
 - `getChunkUrl?: (chunkIndex: number, totalChunks: number) => string` - Custom URL for each chunk
 - `getChunkHeaders?: (chunkIndex: number, totalChunks: number) => Record<string, string>` - Custom headers for each chunk
 
